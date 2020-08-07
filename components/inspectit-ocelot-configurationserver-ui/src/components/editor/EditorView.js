@@ -5,6 +5,7 @@ import editorConfig from '../../data/yaml-editor-config.json';
 import EditorToolbar from './EditorToolbar';
 import Notificationbar from './Notificationbar';
 import YamlParser from './YamlParser';
+import ScopeEditor from './ScopeEditor';
 
 const AceEditor = dynamic(() => import('./AceEditor'), { ssr: false });
 const TreeTableEditor = dynamic(() => import('./TreeTableEditor'), { ssr: false });
@@ -14,6 +15,45 @@ const TreeTableEditor = dynamic(() => import('./TreeTableEditor'), { ssr: false 
  *
  */
 class EditorView extends React.Component {
+
+  state = {
+    showScopeView: false,
+    showBusinessTransactionView: false,
+    showTreeTableView: false,
+    displayScopeEditor: 'none',
+  }
+
+  handleDisplayOfView = (viewType) => {
+    switch (viewType) {
+      case 'showScopeView': 
+        this.state.displayScopeEditor === 'none' ? this.setState({ displayScopeEditor: 'flex'}) : this.setState({ displayScopeEditor: 'none'});
+        this.setState( {
+          showScopeView:  !this.state.showScopeView,
+          showBusinessTransactionView: false,
+          showTreeTableView: false,
+        });
+        break;
+      case 'showBusinessTransactionView': 
+        this.setState( {
+            showScopeView: false,
+            showBusinessTransactionView: !this.state.showBusinessTransactionView,
+            showTreeTableView: false,
+        });
+        break;
+      case 'showTreeTableView': 
+        this.setState({
+            showScopeView: false,
+            showBusinessTransactionView: false,
+            showTreeTableView: !this.state.showTreeTableView,
+        });
+        break;
+    }
+  }
+
+  showAceEditor = () => {
+    this.setState({showScopeView: false, showEditor: true , showTreeTableView: false, displayScopeEditor: 'none' })
+  }
+
   render() {
     const {
       value,
@@ -37,6 +77,9 @@ class EditorView extends React.Component {
       onToggleVisualConfigurationView,
     } = this.props;
 
+    const { showScopeView, showTreeTableView, showBusinessTransactionView, displayScopeEditor } = this.state;
+
+    console.log('updated state', this.state)
     return (
       <div className="this p-grid p-dir-col p-nogutter">
         <style jsx>{`
@@ -82,11 +125,15 @@ class EditorView extends React.Component {
             onHelp={() => this.editor.showShortcuts()}
             visualConfig={showVisualConfigurationView}
             onVisualConfigChange={onToggleVisualConfigurationView}
+            handleDisplayOfView={this.handleDisplayOfView}
+            showScopeView= {showScopeView} 
+            showBusinessTransactionView= {showBusinessTransactionView} 
+            showTreeTableView = {showTreeTableView}
           >
             {children}
           </EditorToolbar>
         </div>
-        {showEditor && !showVisualConfigurationView && (
+        { showEditor && !showScopeView && !showTreeTableView && (
           <div className="p-col editor-container">
             <AceEditor
               editorRef={(editor) => (this.editor = editor)}
@@ -102,15 +149,27 @@ class EditorView extends React.Component {
             />
           </div>
         )}
-        {showEditor && showVisualConfigurationView && (
-          <div className="p-col visual-editor-container">
-            <YamlParser yamlConfig={value} onUpdate={onChange}>
-              {(onUpdate, config) => (
-                <TreeTableEditor config={config} schema={schema} loading={loading} readOnly={readOnly} onUpdate={onUpdate} />
-              )}
-            </YamlParser>
+        {  showEditor && 
+          <div style={{display: displayScopeEditor}}> 
+            <div className="p-col visual-editor-container">
+              <YamlParser yamlConfig={value} onUpdate={onChange}>
+                {(onUpdate, config) => (
+                  <ScopeEditor showAceEditor={this.showAceEditor} config={config} schema={schema} loading={loading} readOnly={readOnly} onUpdate={onUpdate} />
+                )}
+              </YamlParser>
+            </div >
           </div>
-        )}
+        } 
+        {
+          showEditor && showTreeTableView &&
+            <div className="p-col visual-editor-container">
+              <YamlParser yamlConfig={value} onUpdate={onChange}>
+                {(onUpdate, config) => (
+                  <TreeTableEditor config={config} schema={schema} loading={loading} readOnly={readOnly} onUpdate={onUpdate} />
+                )}
+              </YamlParser>
+            </div >
+        }
         {!showEditor && (
           <div className="p-col">
             <div className="selection-information">
